@@ -78,10 +78,15 @@
                         <i class="fa-solid fa-right-from-bracket mr-1"></i> ログアウト
                     </button>
                 </div>
-                <!-- Login Button -->
-                <button id="btn-login-head" class="hidden px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 rounded-2xl shadow-md shadow-pink-200 cute-btn flex items-center gap-2">
-                    <i class="fa-brands fa-google"></i> Googleでログイン
-                </button>
+                <!-- Login Buttons -->
+                <div id="login-head-buttons" class="hidden flex items-center gap-2">
+                    <button id="btn-guest-head" class="px-3 py-2 text-xs font-extrabold text-pink-600 bg-pink-100 hover:bg-pink-200 rounded-2xl cute-btn">
+                        🎀 ゲストで試す
+                    </button>
+                    <button id="btn-login-head" class="px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 rounded-2xl shadow-md shadow-pink-200 cute-btn flex items-center gap-2">
+                        <i class="fa-brands fa-google"></i> Googleでログイン
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -101,9 +106,14 @@
                 Googleアカウントでログインすると、簡単に収支を記録・グラフ化できます🌸<br>
                 データはクラウドに安全に保存されるので安心です♪
             </p>
-            <button id="btn-login-hero" class="px-8 py-4 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300 hover:opacity-95 text-white font-extrabold rounded-3xl shadow-lg shadow-pink-200 cute-btn flex items-center gap-3 text-base">
-                <i class="fa-brands fa-google text-lg"></i> Googleでログインしてはじめる ✨
-            </button>
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <button id="btn-login-hero" class="px-8 py-4 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300 hover:opacity-95 text-white font-extrabold rounded-3xl shadow-lg shadow-pink-200 cute-btn flex items-center gap-3 text-base">
+                    <i class="fa-brands fa-google text-lg"></i> Googleでログインしてはじめる ✨
+                </button>
+                <button id="btn-guest-hero" class="px-6 py-4 bg-white border-2 border-pink-200 text-pink-600 hover:bg-pink-50 font-extrabold rounded-3xl shadow-md cute-btn text-sm">
+                    🎀 ログインせずに体験する（ゲスト）
+                </button>
+            </div>
 
             <!-- Cute Feature cards -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl w-full mt-14 text-left">
@@ -355,12 +365,54 @@
         <span id="toast-message">メッセージ</span>
     </div>
 
+    <!-- Login Trouble / Setup Modal -->
+    <div id="modal-login-help" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border-4 border-pink-200 overflow-hidden p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b-2 border-pink-100 pb-3 mb-4">
+                <h3 class="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    💡 ログインエラーの解決方法
+                </h3>
+                <button id="btn-close-help-modal" class="text-slate-400 hover:text-pink-500 w-8 h-8 rounded-full flex items-center justify-center cute-btn">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div id="login-error-reason" class="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-bold mb-4">
+                エラー理由がここに表示されます
+            </div>
+
+            <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                <p class="font-bold text-slate-800 text-sm">【一番多い原因】GitHub Pagesのドメインが未許可です</p>
+                <p>Firebase Consoleで、GitHub Pagesのドメイン（<code>your-name.github.io</code>）を「承認済みドメイン」に追加する必要があります。</p>
+                
+                <ol class="list-decimal pl-5 space-y-1.5 font-medium bg-pink-50/60 p-3 rounded-2xl border border-pink-100">
+                    <li><a href="https://console.firebase.google.com/" target="_blank" rel="noopener" class="text-pink-600 font-bold underline">Firebase Console</a> を開く</li>
+                    <li>プロジェクト「<strong>kakeibo-ebec8</strong>」を選択</li>
+                    <li>左メニュー <strong>「Authentication」</strong> ＞ <strong>「設定」タブ</strong> を開く</li>
+                    <li><strong>「承認済みドメイン (Authorized domains)」</strong> セクションを探す</li>
+                    <li>「ドメインの追加」をクリックし、<code>github.io</code> または <code>ユーザー名.github.io</code> を追加する</li>
+                </ol>
+
+                <p class="font-bold text-slate-800 text-sm pt-2">【その他の原因】Googleログイン未有効化またはポップアップブロック</p>
+                <p>Authentication ＞ <strong>Sign-in method</strong> で「Google」が有効になっているか確認するか、ブラウザのポップアップブロックを解除してください。</p>
+
+                <div class="pt-3 border-t border-pink-100 flex flex-col gap-2">
+                    <p class="font-bold text-slate-700">👇 Firebase設定なしですぐ試したい場合：</p>
+                    <button id="btn-guest-from-modal" class="w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-extrabold rounded-2xl cute-btn shadow-md">
+                        🎀 ゲストログインで今すぐ体験する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
             getAuth, 
             GoogleAuthProvider, 
             signInWithPopup, 
+            signInAnonymously,
             signOut, 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -458,7 +510,7 @@
         onAuthStateChanged(auth, (user) => {
             const loadingEl = document.getElementById("user-loading");
             const userProfile = document.getElementById("user-profile");
-            const btnLoginHead = document.getElementById("btn-login-head");
+            const loginHeadButtons = document.getElementById("login-head-buttons");
             const viewLoggedOut = document.getElementById("view-logged-out");
             const viewDashboard = document.getElementById("view-dashboard");
 
@@ -466,11 +518,11 @@
 
             if (user) {
                 currentUser = user;
-                document.getElementById("user-avatar").src = user.photoURL || "https://placehold.co/100x100/fce7f3/db2777?text=User";
-                document.getElementById("user-name").textContent = user.displayName || "ユーザーさん";
+                document.getElementById("user-avatar").src = user.photoURL || "https://placehold.co/100x100/fce7f3/db2777?text=Guest";
+                document.getElementById("user-name").textContent = user.displayName || (user.isAnonymous ? "ゲストさん (お試し)" : "ユーザーさん");
 
                 userProfile.classList.remove("hidden");
-                btnLoginHead.classList.add("hidden");
+                loginHeadButtons.classList.add("hidden");
                 viewLoggedOut.classList.add("hidden");
                 viewDashboard.classList.remove("hidden");
 
@@ -481,7 +533,7 @@
                 if (unsubscribeStore) unsubscribeStore();
 
                 userProfile.classList.add("hidden");
-                btnLoginHead.classList.remove("hidden");
+                loginHeadButtons.classList.remove("hidden");
                 viewLoggedOut.classList.remove("hidden");
                 viewDashboard.classList.add("hidden");
             }
@@ -495,8 +547,45 @@
                 triggerConfetti();
             } catch (error) {
                 console.error("Login failed:", error);
-                showToast("ログインできませんでした: " + error.message, false);
+                showLoginHelpModal(error);
             }
+        }
+
+        // Guest / Anonymous Login Handler
+        async function handleGuestLogin() {
+            try {
+                await signInAnonymously(auth);
+                closeLoginHelpModal();
+                showToast("ゲストでログインしました！お試しスタート🌸");
+                triggerConfetti();
+            } catch (error) {
+                console.error("Guest login failed:", error);
+                showToast("ゲストログインに失敗しました: " + error.message, false);
+            }
+        }
+
+        function showLoginHelpModal(error) {
+            const modal = document.getElementById("modal-login-help");
+            const reasonEl = document.getElementById("login-error-reason");
+
+            let friendlyMsg = `エラーコード: ${error.code || '不明'}<br>${error.message}`;
+
+            if (error.code === 'auth/unauthorized-domain') {
+                friendlyMsg = `⚠️ 承認されていないドメインです！<br>Firebaseの設定で「${window.location.hostname}」の許可が必要です。`;
+            } else if (error.code === 'auth/popup-blocked') {
+                friendlyMsg = `⚠️ ブラウザのポップアップがブロックされました。<br>ポップアップを許可して再試行してください。`;
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                friendlyMsg = `ℹ️ ログインウィンドウが閉じられました。`;
+            } else if (error.code === 'auth/operation-not-allowed') {
+                friendlyMsg = `⚠️ Firebase ConsoleでGoogleログインが有効になっていません。`;
+            }
+
+            reasonEl.innerHTML = friendlyMsg;
+            modal.classList.remove("hidden");
+        }
+
+        function closeLoginHelpModal() {
+            document.getElementById("modal-login-help").classList.add("hidden");
         }
 
         // Sign Out Handler
@@ -512,6 +601,10 @@
 
         document.getElementById("btn-login-head").addEventListener("click", handleGoogleLogin);
         document.getElementById("btn-login-hero").addEventListener("click", handleGoogleLogin);
+        document.getElementById("btn-guest-head").addEventListener("click", handleGuestLogin);
+        document.getElementById("btn-guest-hero").addEventListener("click", handleGuestLogin);
+        document.getElementById("btn-guest-from-modal").addEventListener("click", handleGuestLogin);
+        document.getElementById("btn-close-help-modal").addEventListener("click", closeLoginHelpModal);
         document.getElementById("btn-logout").addEventListener("click", handleLogout);
 
         // Firestore Subscription
