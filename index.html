@@ -413,6 +413,7 @@
             GoogleAuthProvider, 
             signInWithPopup, 
             signInAnonymously,
+            signInWithCustomToken,
             signOut, 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -427,8 +428,7 @@
             serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // User Provided Firebase Config
-        const firebaseConfig = {
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDLx7Mc9PE2rw4933Gp3ZK_wNRdZ3qBHxI",
             authDomain: "kakeibo-ebec8.firebaseapp.com",
             projectId: "kakeibo-ebec8",
@@ -437,11 +437,22 @@
             appId: "1:261523537519:web:3d36ab74725fd2f47b179a"
         };
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kakeibo-ebec8';
+
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const googleProvider = new GoogleAuthProvider();
+
+        // Attempt initial custom token auth if present in environment
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            try {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } catch (err) {
+                console.warn("Initial token auth warning:", err);
+            }
+        }
 
         // Cute Category Definitions with Emojis and Soft Colors
         const CATEGORIES = {
@@ -547,6 +558,9 @@
                 triggerConfetti();
             } catch (error) {
                 console.error("Login failed:", error);
+                if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || (error.message && error.message.includes('Cross-Origin-Opener-Policy'))) {
+                    showToast("ポップアップが制限されました。「ゲストで試す」からもご利用可能です🌸", false);
+                }
                 showLoginHelpModal(error);
             }
         }
@@ -611,7 +625,8 @@
         function subscribeToUserTransactions(userId) {
             if (unsubscribeStore) unsubscribeStore();
 
-            const txRef = collection(db, 'users', userId, 'transactions');
+            // Correct Firestore Path according to rules
+            const txRef = collection(db, 'artifacts', appId, 'users', userId, 'transactions');
             
             unsubscribeStore = onSnapshot(txRef, (snapshot) => {
                 rawTransactions = snapshot.docs.map(doc => ({
@@ -621,7 +636,7 @@
                 renderDashboard();
             }, (error) => {
                 console.error("Firestore Error:", error);
-                showToast("データ同期エラーが発生しました", false);
+                showToast("データ同期エラー: " + error.message, false);
             });
         }
 
@@ -979,18 +994,18 @@
 
             try {
                 if (txId) {
-                    await updateDoc(doc(db, 'users', currentUser.uid, 'transactions', txId), payload);
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions', txId), payload);
                     showToast("変更を保存しました！");
                 } else {
                     payload.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), payload);
+                    await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions'), payload);
                     showToast("きろく完了！えらいです✨");
                     triggerConfetti();
                 }
                 closeModal();
             } catch (error) {
                 console.error("Save transaction error:", error);
-                showToast("保存に失敗しちゃいました", false);
+                showToast("保存に失敗しちゃいました: " + (error.message || ''), false);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 保存する ✨';
@@ -1005,7 +1020,7 @@
         window.deleteTransaction = async function(id) {
             if (!currentUser) return;
             try {
-                await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', id));
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions', id));
                 showToast("削除しました");
             } catch (error) {
                 console.error("Delete error:", error);
