@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマート家計簿 - Smart Kakeibo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti for Celebration effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: M PLUS Rounded 1c for cute rounded text -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"M PLUS Rounded 1c"', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            pink: '#fce7f3',
+                            rose: '#f43f5e',
+                            warmBg: '#fffbf5',
+                            mint: '#e6f4ea',
+                            yellow: '#fef3c7',
+                            purple: '#f3e8ff'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'M PLUS Rounded 1c', sans-serif; background-color: #fffaf5; }
+        .glass-panel { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); }
+        .cute-card { background: white; border-radius: 1.5rem; border: 2px solid #f3e8ff; box-shadow: 0 4px 20px -2px rgba(244, 114, 182, 0.08); }
+        .cute-btn { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .cute-btn:hover { transform: translateY(-2px) scale(1.02); }
+        .cute-btn:active { transform: translateY(0) scale(0.98); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #fdf2f8; }
+        ::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-700 flex flex-col justify-between selection:bg-pink-200">
+
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b-2 border-pink-100 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-400 to-amber-300 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-pink-200 animate-bounce">
+                    🎀
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-tight text-pink-600 flex items-center gap-1.5">
+                        スマート家計簿 <span class="text-xs font-normal bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">ふわかわ版</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">つけるのが楽しくなる♪ はぴはぴ収支ノート</p>
+                </div>
+            </div>
+
+            <!-- Auth Status Area -->
+            <div id="auth-area" class="flex items-center gap-3">
+                <div id="user-loading" class="text-xs text-pink-400 font-bold">
+                    <i class="fa-solid fa-heart fa-spin mr-1"></i> じゅんび中...
+                </div>
+                <!-- User Profile Dropdown / Logout -->
+                <div id="user-profile" class="hidden flex items-center gap-3">
+                    <img id="user-avatar" src="" alt="User Avatar" class="w-9 h-9 rounded-full border-2 border-pink-300 object-cover shadow-sm">
+                    <span id="user-name" class="text-xs font-bold text-slate-700 hidden md:inline-block"></span>
+                    <button id="btn-logout" class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-pink-600 bg-slate-100 hover:bg-pink-100 rounded-xl transition-all cute-btn">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> ログアウト
+                    </button>
+                </div>
+                <!-- Login Button -->
+                <button id="btn-login-head" class="hidden px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 rounded-2xl shadow-md shadow-pink-200 cute-btn flex items-center gap-2">
+                    <i class="fa-brands fa-google"></i> Googleでログイン
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow">
+
+        <!-- LOGGED OUT VIEW -->
+        <section id="view-logged-out" class="hidden py-10 sm:py-16 flex flex-col items-center text-center">
+            <div class="w-24 h-24 bg-pink-100 text-pink-500 rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-inner border-2 border-pink-200">
+                🐱
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight mb-3">
+                毎日つけたくなる、私のおこづかい帳 ✨
+            </h2>
+            <p class="max-w-lg text-slate-500 text-xs sm:text-sm mb-8 leading-relaxed">
+                Googleアカウントでログインすると、簡単に収支を記録・グラフ化できます🌸<br>
+                データはクラウドに安全に保存されるので安心です♪
+            </p>
+            <button id="btn-login-hero" class="px-8 py-4 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300 hover:opacity-95 text-white font-extrabold rounded-3xl shadow-lg shadow-pink-200 cute-btn flex items-center gap-3 text-base">
+                <i class="fa-brands fa-google text-lg"></i> Googleでログインしてはじめる ✨
+            </button>
+
+            <!-- Cute Feature cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl w-full mt-14 text-left">
+                <div class="p-5 cute-card bg-white">
+                    <div class="text-2xl mb-2">📱</div>
+                    <h3 class="font-extrabold text-slate-800 text-sm mb-1">スマホでも見やすい</h3>
+                    <p class="text-xs text-slate-400">お出かけ先でもカフェでもササッと簡単に記録できます！</p>
+                </div>
+                <div class="p-5 cute-card bg-white">
+                    <div class="text-2xl mb-2">📊</div>
+                    <h3 class="font-extrabold text-slate-800 text-sm mb-1">グラフでパッと把握</h3>
+                    <p class="text-xs text-slate-400">可愛いドーナツグラフで何にお金を使ったかひと目で解決♪</p>
+                </div>
+                <div class="p-5 cute-card bg-white">
+                    <div class="text-2xl mb-2">🎉</div>
+                    <h3 class="font-extrabold text-slate-800 text-sm mb-1">記録するとお祝い</h3>
+                    <p class="text-xs text-slate-400">収支を記録するたびにクラッカーが舞ってお祝いしてくれるよ！</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGGED IN DASHBOARD -->
+        <section id="view-dashboard" class="hidden space-y-6">
+
+            <!-- Encouraging Mascot Banner -->
+            <div class="bg-gradient-to-r from-pink-100 via-purple-50 to-amber-100 border-2 border-pink-200 p-4 rounded-3xl flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3.5">
+                    <div class="text-3xl animate-bounce">✨</div>
+                    <div>
+                        <h2 class="font-extrabold text-pink-700 text-sm sm:text-base">今日もお記録えらいです！🌸</h2>
+                        <p class="text-xs text-slate-500">コツコツ記録して理想のお小遣い管理をめざしましょう♪</p>
+                    </div>
+                </div>
+                <div class="hidden md:block text-2xl">
+                    🍰 ☕ 🛍️
+                </div>
+            </div>
+
+            <!-- Month Selector & Global Actions -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-3xl border-2 border-pink-100 shadow-sm">
+                <!-- Month Navigator -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-prev-month" class="w-9 h-9 rounded-2xl border-2 border-pink-100 flex items-center justify-center hover:bg-pink-50 text-pink-500 cute-btn font-bold">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <div class="text-center min-w-[130px]">
+                        <span id="current-month-display" class="text-base font-extrabold text-slate-800">2026年9月</span>
+                    </div>
+                    <button id="btn-next-month" class="w-9 h-9 rounded-2xl border-2 border-pink-100 flex items-center justify-center hover:bg-pink-50 text-pink-500 cute-btn font-bold">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                    <button id="btn-this-month" class="px-3 py-1.5 text-xs font-bold bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-xl transition-colors ml-1 cute-btn">
+                        今月
+                    </button>
+                </div>
+
+                <!-- Right Action Buttons -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button id="btn-export-csv" class="px-3.5 py-2 border-2 border-pink-200 text-slate-600 text-xs font-bold rounded-2xl hover:bg-pink-50 transition-colors flex items-center gap-1.5 cute-btn">
+                        <i class="fa-solid fa-file-csv text-pink-400"></i> CSV出力
+                    </button>
+                    <button id="btn-open-add-modal" class="px-4 py-2.5 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white text-xs font-extrabold rounded-2xl shadow-md shadow-pink-200 cute-btn flex items-center gap-2">
+                        <i class="fa-solid fa-heart"></i> 収支をつける
+                    </button>
+                </div>
+            </div>
+
+            <!-- Metrics Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Income Card -->
+                <div class="cute-card p-5 border-emerald-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-400 mb-1 flex items-center gap-1">
+                            <span class="text-emerald-500">💰</span> 今月のしゅうにゅう
+                        </p>
+                        <h3 id="stat-income" class="text-2xl font-black text-emerald-600">¥0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                        ＋
+                    </div>
+                </div>
+
+                <!-- Expense Card -->
+                <div class="cute-card p-5 border-rose-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-400 mb-1 flex items-center gap-1">
+                            <span class="text-rose-500">🛍️</span> 今月のししゅつ
+                        </p>
+                        <h3 id="stat-expense" class="text-2xl font-black text-rose-500">¥0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 flex items-center justify-center text-xl font-bold">
+                        ー
+                    </div>
+                </div>
+
+                <!-- Balance Card -->
+                <div class="cute-card p-5 border-purple-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-400 mb-1 flex items-center gap-1">
+                            <span class="text-purple-500">🐷</span> 今月ののこり（残高）
+                        </p>
+                        <h3 id="stat-balance" class="text-2xl font-black text-slate-800">¥0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-bold">
+                        ✨
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Doughnut Chart: Category breakdown -->
+                <div class="cute-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
+                            <span>🍰</span> カテゴリ別内訳
+                        </h3>
+                    </div>
+                    <div class="relative w-full h-64 flex items-center justify-center">
+                        <canvas id="categoryChart"></canvas>
+                        <p id="no-chart-data" class="hidden text-pink-300 font-bold text-xs text-center absolute">
+                            今月の支出データはまだありません🌸
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bar Chart: Monthly Trend -->
+                <div class="cute-card p-5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
+                            <span>📈</span> 直近の収支推移
+                        </h3>
+                    </div>
+                    <div class="relative w-full h-64">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions List Section -->
+            <div class="cute-card overflow-hidden">
+                <div class="p-4 sm:p-5 border-b-2 border-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-pink-50/50">
+                    <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
+                        <span>📝</span> 収支ノート一覧 
+                        <span id="transaction-count" class="text-xs bg-white text-pink-600 border border-pink-200 px-2 py-0.5 rounded-full font-bold">0件</span>
+                    </h3>
+
+                    <!-- Filter & Search controls -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <select id="filter-category" class="px-3 py-1.5 text-xs font-bold border-2 border-pink-100 rounded-2xl bg-white text-slate-600 focus:outline-none focus:border-pink-300">
+                            <option value="ALL">すべてのカテゴリ</option>
+                        </select>
+                        <select id="filter-type" class="px-3 py-1.5 text-xs font-bold border-2 border-pink-100 rounded-2xl bg-white text-slate-600 focus:outline-none focus:border-pink-300">
+                            <option value="ALL">すべて (収支)</option>
+                            <option value="expense">支出のみ</option>
+                            <option value="income">収入のみ</option>
+                        </select>
+                        <div class="relative">
+                            <input type="text" id="filter-search" placeholder="メモでさがす..." class="pl-8 pr-3 py-1.5 text-xs font-bold border-2 border-pink-100 rounded-2xl bg-white text-slate-600 focus:outline-none focus:border-pink-300 w-36 sm:w-44">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-pink-300 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Items Container -->
+                <div id="transaction-list-container" class="divide-y divide-pink-50 min-h-[160px]">
+                    <!-- Items rendered dynamically via JS -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t-2 border-pink-100 py-6 mt-12 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 font-bold text-pink-300">
+            <p>🌸 スマート家計簿 - いつでも楽しくおこづかい管理 🌸</p>
+        </div>
+    </footer>
+
+    <!-- Add/Edit Transaction Modal -->
+    <div id="modal-transaction" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border-4 border-pink-100 overflow-hidden transform transition-all">
+            <div class="p-5 border-b-2 border-pink-100 flex items-center justify-between bg-pink-50/60">
+                <h3 id="modal-title" class="font-extrabold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+                    ✨ 収支を入力する
+                </h3>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-pink-500 w-8 h-8 rounded-full flex items-center justify-center cute-btn">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <form id="form-transaction" class="p-6 space-y-4">
+                <input type="hidden" id="tx-id">
+
+                <!-- Type Selector Tabs -->
+                <div class="grid grid-cols-2 gap-2 bg-pink-100/60 p-1 rounded-2xl text-xs font-extrabold">
+                    <button type="button" id="tab-type-expense" class="py-2.5 rounded-xl transition-all shadow-sm bg-white text-rose-500">
+                        🛍️ 支出（つかった）
+                    </button>
+                    <button type="button" id="tab-type-income" class="py-2.5 rounded-xl transition-all text-slate-500 hover:text-slate-800">
+                        💰 収入（はいった）
+                    </button>
+                </div>
+
+                <!-- Amount Input -->
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-600 mb-1">金額 (円) *</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 text-pink-400 font-extrabold">¥</span>
+                        <input type="number" id="tx-amount" required min="1" placeholder="1000" class="w-full pl-8 pr-4 py-2.5 text-lg font-black border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Date & Category Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-600 mb-1">日付 *</label>
+                        <input type="date" id="tx-date" required class="w-full px-3 py-2 text-xs font-bold border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-600 mb-1">カテゴリ *</label>
+                        <select id="tx-category" required class="w-full px-3 py-2 text-xs font-bold border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none text-slate-700">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Memo Field -->
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-600 mb-1">メモ (任意)</label>
+                    <input type="text" id="tx-memo" placeholder="スーパーで買出し、カフェタイムなど" class="w-full px-3 py-2 text-xs font-bold border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none text-slate-700">
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                    <button type="submit" id="btn-submit-tx" class="w-full py-3.5 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300 hover:opacity-95 text-white font-black rounded-2xl shadow-lg shadow-pink-200 cute-btn flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-heart"></i> 保存する ✨
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900/90 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-extrabold flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 border-2 border-pink-300">
+        <span id="toast-emoji">🎉</span>
+        <span id="toast-message">メッセージ</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            doc, 
+            onSnapshot, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // User Provided Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLx7Mc9PE2rw4933Gp3ZK_wNRdZ3qBHxI",
+            authDomain: "kakeibo-ebec8.firebaseapp.com",
+            projectId: "kakeibo-ebec8",
+            storageBucket: "kakeibo-ebec8.firebasestorage.app",
+            messagingSenderId: "261523537519",
+            appId: "1:261523537519:web:3d36ab74725fd2f47b179a"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // Cute Category Definitions with Emojis and Soft Colors
+        const CATEGORIES = {
+            expense: [
+                { id: "food", label: "食費 🍔", icon: "fa-utensils", emoji: "🍔", color: "#fb7185" },
+                { id: "cafe", label: "カフェ・お茶 ☕", icon: "fa-mug-hot", emoji: "☕", color: "#f59e0b" },
+                { id: "daily", label: "日用品 🛍️", icon: "fa-basket-shopping", emoji: "🛍️", color: "#38bdf8" },
+                { id: "transport", label: "交通費 🚃", icon: "fa-train", emoji: "🚃", color: "#2dd4bf" },
+                { id: "housing", label: "住居費 🏠", icon: "fa-house", emoji: "🏠", color: "#818cf8" },
+                { id: "utilities", label: "光熱費 ⚡", icon: "fa-bolt", emoji: "⚡", color: "#fbbf24" },
+                { id: "communication", label: "通信費 📱", icon: "fa-mobile-screen", emoji: "📱", color: "#c084fc" },
+                { id: "entertainment", label: "趣味・娯楽 🎮", icon: "fa-gamepad", emoji: "🎮", color: "#f472b6" },
+                { id: "reward", label: "じぶんご褒美 🐱", icon: "fa-gift", emoji: "🐱", color: "#ec4899" },
+                { id: "medical", label: "医療・健康 💊", icon: "fa-kit-medical", emoji: "💊", color: "#34d399" },
+                { id: "social", label: "交際費 🎁", icon: "fa-heart", emoji: "🎁", color: "#fb923c" },
+                { id: "other_exp", label: "その他 🌈", icon: "fa-ellipsis", emoji: "🌈", color: "#94a3b8" }
+            ],
+            income: [
+                { id: "salary", label: "給与 💼", icon: "fa-money-bill-wave", emoji: "💼", color: "#34d399" },
+                { id: "side_job", label: "副業・事業 💻", icon: "fa-laptop", emoji: "💻", color: "#059669" },
+                { id: "bonus", label: "臨時収入 🎁", icon: "fa-gift", emoji: "🎁", color: "#38bdf8" },
+                { id: "other_inc", label: "その他収入 ✨", icon: "fa-wallet", emoji: "✨", color: "#a78bfa" }
+            ]
+        };
+
+        let currentUser = null;
+        let unsubscribeStore = null;
+        let rawTransactions = [];
+        let selectedYearMonth = getCurrentYearMonth(); // "YYYY-MM"
+        let currentModalType = "expense"; // "expense" or "income"
+        let categoryChartInstance = null;
+        let trendChartInstance = null;
+
+        function getCurrentYearMonth() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+            }
+        }
+
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById("toast");
+            const msgEl = document.getElementById("toast-message");
+            const emojiEl = document.getElementById("toast-emoji");
+
+            msgEl.textContent = message;
+            emojiEl.textContent = isSuccess ? "🎉" : "💧";
+
+            toast.classList.remove("translate-y-20", "opacity-0");
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+            }, 3000);
+        }
+
+        // Auth State Listener
+        onAuthStateChanged(auth, (user) => {
+            const loadingEl = document.getElementById("user-loading");
+            const userProfile = document.getElementById("user-profile");
+            const btnLoginHead = document.getElementById("btn-login-head");
+            const viewLoggedOut = document.getElementById("view-logged-out");
+            const viewDashboard = document.getElementById("view-dashboard");
+
+            loadingEl.classList.add("hidden");
+
+            if (user) {
+                currentUser = user;
+                document.getElementById("user-avatar").src = user.photoURL || "https://placehold.co/100x100/fce7f3/db2777?text=User";
+                document.getElementById("user-name").textContent = user.displayName || "ユーザーさん";
+
+                userProfile.classList.remove("hidden");
+                btnLoginHead.classList.add("hidden");
+                viewLoggedOut.classList.add("hidden");
+                viewDashboard.classList.remove("hidden");
+
+                populateCategoryFilterOptions();
+                subscribeToUserTransactions(user.uid);
+            } else {
+                currentUser = null;
+                if (unsubscribeStore) unsubscribeStore();
+
+                userProfile.classList.add("hidden");
+                btnLoginHead.classList.remove("hidden");
+                viewLoggedOut.classList.remove("hidden");
+                viewDashboard.classList.add("hidden");
+            }
+        });
+
+        // Google Sign In Handler
+        async function handleGoogleLogin() {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                showToast("おかえりなさい！ログインしました✨");
+                triggerConfetti();
+            } catch (error) {
+                console.error("Login failed:", error);
+                showToast("ログインできませんでした: " + error.message, false);
+            }
+        }
+
+        // Sign Out Handler
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                showToast("ログアウトしました");
+            } catch (error) {
+                console.error("Logout failed:", error);
+                showToast("ログアウトエラー", false);
+            }
+        }
+
+        document.getElementById("btn-login-head").addEventListener("click", handleGoogleLogin);
+        document.getElementById("btn-login-hero").addEventListener("click", handleGoogleLogin);
+        document.getElementById("btn-logout").addEventListener("click", handleLogout);
+
+        // Firestore Subscription
+        function subscribeToUserTransactions(userId) {
+            if (unsubscribeStore) unsubscribeStore();
+
+            const txRef = collection(db, 'users', userId, 'transactions');
+            
+            unsubscribeStore = onSnapshot(txRef, (snapshot) => {
+                rawTransactions = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderDashboard();
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                showToast("データ同期エラーが発生しました", false);
+            });
+        }
+
+        // Month Navigation
+        document.getElementById("btn-prev-month").addEventListener("click", () => changeMonth(-1));
+        document.getElementById("btn-next-month").addEventListener("click", () => changeMonth(1));
+        document.getElementById("btn-this-month").addEventListener("click", () => {
+            selectedYearMonth = getCurrentYearMonth();
+            renderDashboard();
+        });
+
+        function changeMonth(delta) {
+            const [y, m] = selectedYearMonth.split('-').map(Number);
+            const date = new Date(y, m - 1 + delta, 1);
+            const newY = date.getFullYear();
+            const newM = String(date.getMonth() + 1).padStart(2, '0');
+            selectedYearMonth = `${newY}-${newM}`;
+            renderDashboard();
+        }
+
+        document.getElementById("filter-category").addEventListener("change", renderDashboard);
+        document.getElementById("filter-type").addEventListener("change", renderDashboard);
+        document.getElementById("filter-search").addEventListener("input", renderDashboard);
+
+        function renderDashboard() {
+            const [year, month] = selectedYearMonth.split('-');
+            document.getElementById("current-month-display").textContent = `${year}年${parseInt(month, 10)}月`;
+
+            const monthTx = rawTransactions.filter(tx => tx.date && tx.date.startsWith(selectedYearMonth));
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            monthTx.forEach(tx => {
+                const amt = Number(tx.amount) || 0;
+                if (tx.type === "income") totalIncome += amt;
+                if (tx.type === "expense") totalExpense += amt;
+            });
+
+            const netBalance = totalIncome - totalExpense;
+
+            document.getElementById("stat-income").textContent = `¥${totalIncome.toLocaleString()}`;
+            document.getElementById("stat-expense").textContent = `¥${totalExpense.toLocaleString()}`;
+            document.getElementById("stat-balance").textContent = `¥${netBalance.toLocaleString()}`;
+            document.getElementById("stat-balance").className = `text-2xl font-black ${netBalance >= 0 ? 'text-slate-800' : 'text-rose-500'}`;
+
+            const filterCat = document.getElementById("filter-category").value;
+            const filterType = document.getElementById("filter-type").value;
+            const filterSearch = document.getElementById("filter-search").value.toLowerCase().trim();
+
+            const filteredList = monthTx.filter(tx => {
+                if (filterCat !== "ALL" && tx.category !== filterCat) return false;
+                if (filterType !== "ALL" && tx.type !== filterType) return false;
+                if (filterSearch && !(tx.memo || '').toLowerCase().includes(filterSearch) && !(tx.category || '').toLowerCase().includes(filterSearch)) return false;
+                return true;
+            });
+
+            filteredList.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            renderTransactionList(filteredList);
+            renderCategoryChart(monthTx.filter(t => t.type === "expense"));
+            renderTrendChart();
+        }
+
+        function populateCategoryFilterOptions() {
+            const select = document.getElementById("filter-category");
+            select.innerHTML = '<option value="ALL">すべてのカテゴリ</option>';
+
+            const allCats = [...CATEGORIES.expense, ...CATEGORIES.income];
+            allCats.forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat.label;
+                opt.textContent = cat.label;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderTransactionList(items) {
+            const container = document.getElementById("transaction-list-container");
+            document.getElementById("transaction-count").textContent = `${items.length}件`;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 text-center text-pink-300 font-bold text-xs">
+                        <div class="text-3xl mb-2">🌸</div>
+                        記録した収支がここに表示されます♪
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = items.map(tx => {
+                const isExpense = tx.type === "expense";
+                const catDef = [...CATEGORIES.expense, ...CATEGORIES.income].find(c => c.label === tx.category) || {
+                    emoji: isExpense ? "🛍️" : "💰",
+                    color: "#f472b6"
+                };
+
+                return `
+                    <div class="p-4 sm:p-5 flex items-center justify-between hover:bg-pink-50/40 transition-colors group">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm" style="background-color: ${catDef.color}20">
+                                <span>${catDef.emoji || '🌸'}</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-extrabold text-slate-800 text-xs sm:text-sm">${escapeHtml(tx.category || '未設定')}</span>
+                                    <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">${tx.date}</span>
+                                </div>
+                                <p class="text-xs font-bold text-slate-400 mt-0.5">${escapeHtml(tx.memo || 'メモなし')}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-black text-sm sm:text-base ${isExpense ? 'text-rose-500' : 'text-emerald-500'}">
+                                ${isExpense ? '-' : '+'}¥${Number(tx.amount).toLocaleString()}
+                            </span>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                <button onclick="editTransaction('${tx.id}')" class="p-1.5 text-slate-400 hover:text-pink-500 rounded-lg hover:bg-pink-100 text-xs transition-colors" title="編集">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="deleteTransaction('${tx.id}')" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-100 text-xs transition-colors" title="削除">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function renderCategoryChart(expenseTxList) {
+            const canvas = document.getElementById("categoryChart");
+            const noDataMsg = document.getElementById("no-chart-data");
+
+            if (expenseTxList.length === 0) {
+                canvas.style.display = "none";
+                noDataMsg.classList.remove("hidden");
+                if (categoryChartInstance) categoryChartInstance.destroy();
+                return;
+            }
+
+            canvas.style.display = "block";
+            noDataMsg.classList.add("hidden");
+
+            const totals = {};
+            expenseTxList.forEach(tx => {
+                const cat = tx.category || 'その他 🌈';
+                totals[cat] = (totals[cat] || 0) + (Number(tx.amount) || 0);
+            });
+
+            const labels = Object.keys(totals);
+            const data = Object.values(totals);
+            const bgColors = labels.map(lbl => {
+                const found = CATEGORIES.expense.find(c => c.label === lbl);
+                return found ? found.color : '#f472b6';
+            });
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+
+            categoryChartInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColors,
+                        borderWidth: 3,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'M PLUS Rounded 1c', weight: 'bold', size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => ` ${context.label}: ¥${context.raw.toLocaleString()}`
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderTrendChart() {
+            const canvas = document.getElementById("trendChart");
+
+            const months = [];
+            const [curY, curM] = selectedYearMonth.split('-').map(Number);
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(curY, curM - 1 - i, 1);
+                const yStr = d.getFullYear();
+                const mStr = String(d.getMonth() + 1).padStart(2, '0');
+                months.push(`${yStr}-${mStr}`);
+            }
+
+            const incomeData = months.map(ym => {
+                return rawTransactions
+                    .filter(t => t.type === "income" && t.date && t.date.startsWith(ym))
+                    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            });
+
+            const expenseData = months.map(ym => {
+                return rawTransactions
+                    .filter(t => t.type === "expense" && t.date && t.date.startsWith(ym))
+                    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            });
+
+            const labels = months.map(ym => {
+                const [y, m] = ym.split('-');
+                return `${parseInt(m, 10)}月`;
+            });
+
+            if (trendChartInstance) trendChartInstance.destroy();
+
+            trendChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '収入 💰',
+                            data: incomeData,
+                            backgroundColor: '#34d399',
+                            borderRadius: 8
+                        },
+                        {
+                            label: '支出 🛍️',
+                            data: expenseData,
+                            backgroundColor: '#fb7185',
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'M PLUS Rounded 1c', weight: 'bold', size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.dataset.label}: ¥${ctx.raw.toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            ticks: {
+                                callback: (value) => '¥' + value.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const modalEl = document.getElementById("modal-transaction");
+        const btnTypeExpense = document.getElementById("tab-type-expense");
+        const btnTypeIncome = document.getElementById("tab-type-income");
+
+        document.getElementById("btn-open-add-modal").addEventListener("click", () => {
+            openModal();
+        });
+
+        document.getElementById("btn-close-modal").addEventListener("click", closeModal);
+
+        btnTypeExpense.addEventListener("click", () => setModalType("expense"));
+        btnTypeIncome.addEventListener("click", () => setModalType("income"));
+
+        function setModalType(type) {
+            currentModalType = type;
+            if (type === "expense") {
+                btnTypeExpense.className = "py-2.5 rounded-xl transition-all shadow-sm bg-white text-rose-500 font-extrabold";
+                btnTypeIncome.className = "py-2.5 rounded-xl transition-all text-slate-500 hover:text-slate-800 font-extrabold";
+            } else {
+                btnTypeIncome.className = "py-2.5 rounded-xl transition-all shadow-sm bg-white text-emerald-600 font-extrabold";
+                btnTypeExpense.className = "py-2.5 rounded-xl transition-all text-slate-500 hover:text-slate-800 font-extrabold";
+            }
+            populateCategoryDropdown(type);
+        }
+
+        function populateCategoryDropdown(type, selectedVal = null) {
+            const select = document.getElementById("tx-category");
+            select.innerHTML = "";
+            CATEGORIES[type].forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat.label;
+                opt.textContent = cat.label;
+                if (selectedVal && selectedVal === cat.label) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function openModal(editData = null) {
+            const form = document.getElementById("form-transaction");
+            form.reset();
+
+            if (editData) {
+                document.getElementById("modal-title").textContent = "✨ 収支データを変更する";
+                document.getElementById("tx-id").value = editData.id;
+                document.getElementById("tx-amount").value = editData.amount;
+                document.getElementById("tx-date").value = editData.date;
+                document.getElementById("tx-memo").value = editData.memo || '';
+                setModalType(editData.type);
+                populateCategoryDropdown(editData.type, editData.category);
+            } else {
+                document.getElementById("modal-title").textContent = "✨ 収支を入力する";
+                document.getElementById("tx-id").value = "";
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("tx-date").value = today;
+                setModalType("expense");
+            }
+
+            modalEl.classList.remove("hidden");
+        }
+
+        function closeModal() {
+            modalEl.classList.add("hidden");
+        }
+
+        document.getElementById("form-transaction").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const txId = document.getElementById("tx-id").value;
+            const amount = Number(document.getElementById("tx-amount").value);
+            const date = document.getElementById("tx-date").value;
+            const category = document.getElementById("tx-category").value;
+            const memo = document.getElementById("tx-memo").value.trim();
+
+            if (!amount || !date || !category) {
+                showToast("必要な項目を入力してね！", false);
+                return;
+            }
+
+            const payload = {
+                type: currentModalType,
+                amount: amount,
+                date: date,
+                category: category,
+                memo: memo,
+                updatedAt: serverTimestamp()
+            };
+
+            const submitBtn = document.getElementById("btn-submit-tx");
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
+
+            try {
+                if (txId) {
+                    await updateDoc(doc(db, 'users', currentUser.uid, 'transactions', txId), payload);
+                    showToast("変更を保存しました！");
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), payload);
+                    showToast("きろく完了！えらいです✨");
+                    triggerConfetti();
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Save transaction error:", error);
+                showToast("保存に失敗しちゃいました", false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 保存する ✨';
+            }
+        });
+
+        window.editTransaction = function(id) {
+            const target = rawTransactions.find(t => t.id === id);
+            if (target) openModal(target);
+        };
+
+        window.deleteTransaction = async function(id) {
+            if (!currentUser) return;
+            try {
+                await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', id));
+                showToast("削除しました");
+            } catch (error) {
+                console.error("Delete error:", error);
+                showToast("削除できませんでした", false);
+            }
+        };
+
+        // CSV Export
+        document.getElementById("btn-export-csv").addEventListener("click", () => {
+            const monthTx = rawTransactions.filter(tx => tx.date && tx.date.startsWith(selectedYearMonth));
+            if (monthTx.length === 0) {
+                showToast("出力できるデータがありません", false);
+                return;
+            }
+
+            let csvContent = "\uFEFF日付,タイプ,カテゴリ,金額,メモ\n";
+            monthTx.forEach(tx => {
+                const typeLabel = tx.type === "expense" ? "支出" : "収入";
+                const memoClean = (tx.memo || '').replace(/"/g, '""');
+                csvContent += `"${tx.date}","${typeLabel}","${tx.category}","${tx.amount}","${memoClean}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `kakeibo_${selectedYearMonth}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSVをダウンロードしました！");
+        });
+    </script>
+</body>
+</html>
